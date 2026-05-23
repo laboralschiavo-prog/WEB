@@ -1,0 +1,10 @@
+# Ignorar todo excepto posta-cotizaciones
+Agentes/
+FINANZAS/
+Launcher/
+Proyecto_MT/
+Skills_Globales/
+CLAUDE.md
+Memoria.md
+.claude/
+.mcp.json
