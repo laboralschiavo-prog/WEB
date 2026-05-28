@@ -39,6 +39,8 @@ Plataforma B2B de cotizaciones/presupuestos para POSTA SRL (muebles outdoor / ca
 | `/admin/(panel)/promociones` | Gestión de promociones |
 | `/admin/(panel)/configuracion` | Subcategorías |
 | `/admin/(panel)/estadisticas` | Estadísticas de demanda |
+| `/admin/vista-cliente` | Vista previa del catálogo POV cliente (sin loop de sesión) |
+| `/api/auth/me` | GET — devuelve `{ isAdmin: boolean }` para redirect post-login |
 
 ---
 
@@ -48,7 +50,7 @@ Plataforma B2B de cotizaciones/presupuestos para POSTA SRL (muebles outdoor / ca
 - `cotizaciones` — estados: pendiente / enviada / concretada / cancelada. Tiene `descuento_porcentaje`, `plazo_entrega_dias`
 - `cotizacion_items` — `precio_mostrado`, `formato_entrega`, `formato_cantidad`, `precio_base_snapshot`, `margen_aplicado`
 - `cotizacion_notas` — notas/comentarios por presupuesto (admin o sistema)
-- `productos` — `precio_base` es precio de lista directo (sin margen). Tiene `stock`, `imagen_url`, `unidades_por_bulto`, `unidades_por_pallet`
+- `productos` — `precio_base` es precio de lista directo (sin margen). Tiene `stock`, `imagen_url`, `unidades_por_bulto`, `unidades_por_pallet`, `destacado`, `oferta_relamago`, `precio_oferta`, `nueva_linea`
 - `subcategorias` — nuevo / frecuente / premium. Controlan acceso a promos. Ya NO usan `margen_porcentaje`
 - `promociones` — promos por volumen/formato. `subcategoria_ids: null` = todos, array = solo esas categorías
 - `cliente_descuentos` — descuentos guardados por cliente (descripcion + porcentaje), aplicables desde presupuesto admin
@@ -57,11 +59,15 @@ Plataforma B2B de cotizaciones/presupuestos para POSTA SRL (muebles outdoor / ca
 
 ## Decisiones de diseño tomadas
 
-- **Precio de lista directo**: clientes ven `precio_base` sin multiplicador. `margen_aplicado = 0` en nuevos items. Beneficios van por descuentos y promos.
+- **Precio de lista directo**: clientes ven `precio_base` sin multiplicador. Si `oferta_relamago = true` y `precio_oferta` no es null, se usa `precio_oferta` como `precioMostrado` (aplica en catálogo y carrito). `margen_aplicado = 0` en nuevos items. Beneficios van por descuentos y promos.
 - **Categorías = acceso a promos**: `subcategorias` no multiplica precios, define qué promos puede ver el cliente.
 - **Promos universales vs restringidas**: `subcategoria_ids = null` → todos. Array de IDs → solo esas categorías.
 - **Descuentos múltiples por cliente**: tabla `cliente_descuentos`, visible en ficha del cliente y aplicable con un click desde el presupuesto.
 - **Sin sidebar en home admin**: `/admin` es fullscreen. Sidebar solo en `/admin/(panel)/*` (route group).
+- **Redirect admin post-login**: login llama `/api/auth/me` → si `isAdmin` → `/admin`, sino → `/dashboard`. El layout `(cliente)/layout.tsx` tiene safety net: si detecta `ADMIN_EMAIL` redirige a `/admin`.
+- **Vista cliente desde admin**: `/admin/vista-cliente` renderiza `CatalogClient` con datos reales pero dentro del área admin, evitando el loop de sesión. Muestra banner "vista previa" con botón volver.
+- **Secciones del catálogo**: 3 flags en `productos` (`destacado`, `oferta_relamago`+`precio_oferta`, `nueva_linea`). Admin los activa por producto. Cliente ve 3 boxes clicables encima de los filtros solo si hay productos asignados. "Nueva línea" muestra galería en grid con imagen grande + agregar. Los badges de colores (azul/ámbar/violeta) en ProductosTabla muestran qué secciones tiene cada producto.
+- **Sidebar admin tiene "Ver el sitio"**: enlace con ícono ojo → `/admin/vista-cliente`. También en top bar del home admin.
 - **Nombre "presupuestos"**: en UI se llaman "presupuestos", no "cotizaciones" (aunque la tabla en BD sigue llamándose `cotizaciones`).
 - **Límite de presupuestos activos**: controlado por env `MAX_PRESUPUESTOS_ACTIVOS` (default 3). Al superar → modal con WhatsApp.
 - **Archivo automático**: presupuestos cancelados/concretados desaparecen del listado tras `DIAS_ARCHIVADO` días (default 30).
@@ -187,3 +193,39 @@ NEXT_PUBLIC_WHATSAPP_VENDEDOR
 - Dashboard home admin fullscreen con stats y preview de estadísticas
 - Página completa de estadísticas: alta rotación, formatos, tendencia mensual, conversión, productos en alza, tipo de comercio, top clientes
 - Precio de lista directo (sin margen por categoría)
+- **Redirect automático según rol**: admin → `/admin`, cliente → `/dashboard` post-login
+- **Vista previa del cliente** desde admin (`/admin/vista-cliente`) — catálogo real sin loop de sesión
+- **3 secciones del catálogo**: Destacados / Ofertas relámpago / Nueva línea — activables por producto desde admin. Boxes clicables encima de filtros. Nueva línea con galería en grid.
+- **Boxes del catálogo cierran con click afuera**: overlay transparente `z-10`, sección expandida `z-20` (mismo patrón que el carrito).
+- **Catálogo de 35 productos cargado**: `004_seed_productos.sql`. Categorías: Sillones, Reposeras, Mesas, Tendederos y Tablas. `precio_base = 0` → actualizar desde admin.
+- **Categorías normalizadas**: `005_normalizar_categorias.sql` — corrige Reposera→Reposeras, Sillon→Sillones, Tender y Tablas→Tendederos y Tablas.
+- **Admin ProductosTabla con búsqueda**: barra única con input de texto + dropdown categoría + dropdown estado (activo/inactivo) + botón limpiar. Filtrado client-side.
+- **ProductoModal categoría como select**: 4 opciones fijas (Sillones / Reposeras / Mesas / Tendederos y Tablas) + Sin categoría.
+- **Tabla `configuracion`**: `006_configuracion.sql`. Claves: `pedido_sin_stock_habilitado`, `pedido_sin_stock_texto`, `pedido_sin_stock_descuento`. El texto es global/informativo; habilitado y descuento ahora los maneja la subcategoría (ver abajo).
+- **Pedidos sin stock por subcategoría**: `007_pedido_subcategoria.sql` agrega `pedido_plazo_dias` y `pedido_descuento` a `subcategorias`. Si `pedido_plazo_dias = 0` → categoría no puede pedir sin stock. Si > 0 → puede pedir, se muestra plazo y descuento al cliente.
+- **SubcategoriaEditor**: nueva sección "Pedidos sin stock" en `/admin/configuracion` para configurar plazo y descuento por categoría.
+- **Página Inicio del cliente** (`/inicio`): bienvenida, stats rápidas (productos disponibles, presupuestos activos), accesos directos, banner si hay productos a pedido.
+- **NavLinks con active state**: nav del cliente muestra Inicio / Productos / Presupuestos con highlight del link activo.
+- **Diferenciación stock en catálogo**: productos con `stock > 0` → comportamiento normal. `stock = 0` → sección colapsable "A pedido" (naranja) solo visible si la subcategoría del cliente tiene `pedido_plazo_dias > 0`.
+- **CartItem.es_pedido**: items "a pedido" se marcan con `es_pedido: true`. Sin selector de formato. Descuento de la subcategoría aplicado. Al generar presupuesto: `formato_entrega = 'pedido'` + nota automática con el texto del beneficio.
+
+---
+
+## Modelo de datos — campos adicionales en `subcategorias`
+
+```
+pedido_plazo_dias  integer  DEFAULT 0   -- 0 = no puede pedir sin stock
+pedido_descuento   numeric  DEFAULT 0   -- % descuento aplicado al pedido
+```
+
+---
+
+## Migraciones SQL — todas ejecutadas salvo indicación
+
+| Archivo | Estado | Descripción |
+|---|---|---|
+| 003_secciones_catalogo.sql | pendiente si no se ejecutó antes | flags destacado/oferta_relamago/nueva_linea en productos |
+| 004_seed_productos.sql | ejecutar 1 vez | 35 productos del catálogo POSTA SRL (precio_base = 0) |
+| 005_normalizar_categorias.sql | ejecutar 1 vez | normaliza nombres de categoría en productos existentes |
+| 006_configuracion.sql | ejecutado | tabla configuracion con texto de pedidos sin stock |
+| 007_pedido_subcategoria.sql | ejecutado | pedido_plazo_dias y pedido_descuento en subcategorias |

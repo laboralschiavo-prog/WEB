@@ -5,6 +5,8 @@ export interface SubcategoriaRow {
   margen_porcentaje: number
   compras_requeridas: number
   orden: number
+  pedido_plazo_dias: number
+  pedido_descuento: number
 }
 
 export interface ClienteRow {
@@ -32,7 +34,15 @@ export interface ProductoRow {
   precio_base: number
   categoria: string | null
   activo: boolean
+  stock: number
+  imagen_url: string | null
+  unidades_por_bulto: number | null
+  unidades_por_pallet: number | null
   creado_en: string
+  destacado: boolean
+  oferta_relamago: boolean
+  precio_oferta: number | null
+  nueva_linea: boolean
 }
 
 export interface CotizacionRow {
@@ -104,6 +114,14 @@ export type Database = {
           precio_base: number
           categoria?: string | null
           activo?: boolean
+          stock?: number
+          imagen_url?: string | null
+          unidades_por_bulto?: number | null
+          unidades_por_pallet?: number | null
+          destacado?: boolean
+          oferta_relamago?: boolean
+          precio_oferta?: number | null
+          nueva_linea?: boolean
         }
         Update: Partial<ProductoRow>
         Relationships: []
@@ -148,6 +166,15 @@ export type Database = {
       }
     }
   }
+}
+
+export interface PlanProduccionRow {
+  id: string
+  producto_id: string
+  fecha_estimada: string
+  cantidad_planificada: number
+  notas: string | null
+  creado_en: string
 }
 
 // Convenience aliases

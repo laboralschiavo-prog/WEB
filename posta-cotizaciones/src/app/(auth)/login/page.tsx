@@ -29,7 +29,9 @@ function LoginForm() {
       return
     }
 
-    router.push('/dashboard')
+    const meRes = await fetch('/api/auth/me')
+    const { isAdmin } = await meRes.json()
+    router.push(isAdmin ? '/admin' : '/dashboard')
     router.refresh()
   }
 

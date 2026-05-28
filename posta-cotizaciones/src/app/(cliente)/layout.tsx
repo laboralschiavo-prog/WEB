@@ -1,12 +1,13 @@
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import NavLinks from './components/NavLinks'
 
 export default async function ClienteLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+  if (user.email === process.env.ADMIN_EMAIL) redirect('/admin')
 
   const { data: cliente } = await supabase
     .from('clientes')
@@ -25,10 +26,7 @@ export default async function ClienteLayout({ children }: { children: React.Reac
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
             <span className="font-bold text-gray-900">POSTA SRL</span>
-            <nav className="flex gap-4 text-sm">
-              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">Productos</Link>
-              <Link href="/cotizaciones" className="text-gray-600 hover:text-gray-900 transition-colors">Mis cotizaciones</Link>
-            </nav>
+            <NavLinks />
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-gray-500">{cliente.razon_social ?? cliente.email}</span>

@@ -8,11 +8,16 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const { id, compras_requeridas } = await req.json()
+  const { id, compras_requeridas, pedido_plazo_dias, pedido_descuento } = await req.json()
+
+  const update: Record<string, unknown> = {}
+  if (compras_requeridas !== undefined) update.compras_requeridas = compras_requeridas
+  if (pedido_plazo_dias  !== undefined) update.pedido_plazo_dias  = pedido_plazo_dias
+  if (pedido_descuento   !== undefined) update.pedido_descuento   = pedido_descuento
 
   const { error } = await supabase
     .from('subcategorias')
-    .update({ compras_requeridas })
+    .update(update)
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

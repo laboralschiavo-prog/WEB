@@ -21,8 +21,12 @@ export default function SubcategoriaEditor({
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [compras, setCompras] = useState(s.compras_requeridas.toString())
+  const [plazo, setPlazo] = useState(s.pedido_plazo_dias.toString())
+  const [descuentoPedido, setDescuentoPedido] = useState(s.pedido_descuento.toString())
   const [loading, setLoading] = useState(false)
+  const [loadingPedido, setLoadingPedido] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [savedPedido, setSavedPedido] = useState(false)
   const [promoLoading, setPromoLoading] = useState<string | null>(null)
 
   const [promoSubcats, setPromoSubcats] = useState<Map<string, string[]>>(
@@ -39,6 +43,23 @@ export default function SubcategoriaEditor({
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
     setLoading(false)
+    router.refresh()
+  }
+
+  async function handleSavePedido() {
+    setLoadingPedido(true)
+    await fetch('/api/admin/subcategoria', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: s.id,
+        pedido_plazo_dias: Number(plazo),
+        pedido_descuento: Number(descuentoPedido),
+      }),
+    })
+    setSavedPedido(true)
+    setTimeout(() => setSavedPedido(false), 2000)
+    setLoadingPedido(false)
     router.refresh()
   }
 
@@ -117,6 +138,50 @@ export default function SubcategoriaEditor({
               </button>
             </div>
           )}
+
+          {/* Pedidos sin stock */}
+          <div className="rounded-lg border border-orange-100 bg-orange-50/50 p-4 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Pedidos sin stock
+              <span className="ml-2 font-normal text-gray-400 normal-case tracking-normal">
+                — fabricación a pedido para este segmento
+              </span>
+            </p>
+            <div className="flex flex-wrap items-end gap-4">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Plazo estimado (días)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number" min="0" step="1"
+                    value={plazo} onChange={e => setPlazo(e.target.value)}
+                    className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-center"
+                  />
+                  <span className="text-xs text-gray-400">0 = deshabilitado</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Descuento (%)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number" min="0" max="100" step="1"
+                    value={descuentoPedido} onChange={e => setDescuentoPedido(e.target.value)}
+                    className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-center"
+                  />
+                  <span className="text-xs text-gray-400">sobre precio base</span>
+                </div>
+              </div>
+              <button onClick={handleSavePedido} disabled={loadingPedido}
+                className="rounded-lg bg-orange-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 transition-colors">
+                {savedPedido ? 'Guardado' : loadingPedido ? '...' : 'Guardar'}
+              </button>
+            </div>
+            {Number(plazo) > 0 && (
+              <p className="text-xs text-orange-700">
+                Este segmento puede pedir sin stock. Plazo: <strong>{plazo} días</strong>
+                {Number(descuentoPedido) > 0 && <>, descuento: <strong>{descuentoPedido}%</strong></>}.
+              </p>
+            )}
+          </div>
 
           {/* Promociones asignadas */}
           <div>

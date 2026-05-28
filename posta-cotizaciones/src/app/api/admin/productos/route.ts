@@ -10,11 +10,11 @@ async function verifyAdmin() {
 export async function POST(req: NextRequest) {
   if (!await verifyAdmin()) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
-  const { nombre, descripcion, precio_base, categoria, activo, stock, imagen_url, unidades_por_bulto, unidades_por_pallet } = await req.json()
+  const { nombre, descripcion, precio_base, categoria, activo, stock, imagen_url, unidades_por_bulto, unidades_por_pallet, destacado, oferta_relamago, precio_oferta, nueva_linea } = await req.json()
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('productos')
-    .insert({ nombre, descripcion, precio_base, categoria, activo: activo ?? true, stock: stock ?? 0, imagen_url: imagen_url ?? null, unidades_por_bulto: unidades_por_bulto ?? null, unidades_por_pallet: unidades_por_pallet ?? null })
+    .insert({ nombre, descripcion, precio_base, categoria, activo: activo ?? true, stock: stock ?? 0, imagen_url: imagen_url ?? null, unidades_por_bulto: unidades_por_bulto ?? null, unidades_por_pallet: unidades_por_pallet ?? null, destacado: destacado ?? false, oferta_relamago: oferta_relamago ?? false, precio_oferta: precio_oferta ?? null, nueva_linea: nueva_linea ?? false })
     .select()
     .single()
 
@@ -25,11 +25,11 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   if (!await verifyAdmin()) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
-  const { id, nombre, descripcion, precio_base, categoria, activo, stock, imagen_url, unidades_por_bulto, unidades_por_pallet } = await req.json()
+  const { id, nombre, descripcion, precio_base, categoria, activo, stock, imagen_url, unidades_por_bulto, unidades_por_pallet, destacado, oferta_relamago, precio_oferta, nueva_linea } = await req.json()
   const supabase = createAdminClient()
   const { error } = await supabase
     .from('productos')
-    .update({ nombre, descripcion, precio_base, categoria, activo, stock, imagen_url, unidades_por_bulto, unidades_por_pallet })
+    .update({ nombre, descripcion, precio_base, categoria, activo, stock, imagen_url, unidades_por_bulto, unidades_por_pallet, destacado, oferta_relamago, precio_oferta, nueva_linea })
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
